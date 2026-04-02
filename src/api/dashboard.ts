@@ -15,7 +15,7 @@ export const dashboardApi = {
   getCategoryTotals: (params?: { from?: string; to?: string }) =>
     api.get<ApiResponse<CategoryTotal[]>>(`/dashboard/category-totals${buildQuery(params)}`),
 
-  getTrends: (params?: { period?: 'weekly' | 'monthly'; from?: string; to?: string }) =>
+  getTrends: (params?: { period?: 'daily' | 'weekly' | 'monthly'; from?: string; to?: string }) =>
     api.get<ApiResponse<TrendPeriod[]>>(`/dashboard/trends${buildQuery(params)}`),
 
   getRecentActivity: (params?: { limit?: number }) =>

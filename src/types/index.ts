@@ -45,7 +45,7 @@ export interface CategoryTotal {
 }
 
 export interface TrendPeriod {
-  period: 'weekly' | 'monthly';
+  period: 'daily' | 'weekly' | 'monthly';
   startDate: string;
   endDate: string;
   totalIncome: number;

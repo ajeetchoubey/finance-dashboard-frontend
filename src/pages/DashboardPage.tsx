@@ -31,8 +31,11 @@ function formatCompact(value: number) {
   return `$${value}`;
 }
 
-function formatTrendLabel(t: TrendPeriod, period: 'weekly' | 'monthly') {
+function formatTrendLabel(t: TrendPeriod, period: 'daily' | 'weekly' | 'monthly') {
   const d = new Date(t.startDate);
+  if (period === 'daily') {
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
   if (period === 'monthly') {
     return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
   }
@@ -184,7 +187,7 @@ function CategoryBreakdown({ categories }: { categories: CategoryTotal[] }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export function DashboardPage() {
-  const [trendPeriod, setTrendPeriod] = useState<'weekly' | 'monthly'>('monthly');
+  const [trendPeriod, setTrendPeriod] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
 
   const { data: summaryRes, isLoading: summaryLoading } = useQuery({
     queryKey: ['dashboard', 'summary'],
@@ -264,7 +267,7 @@ export function DashboardPage() {
               <p className="text-xs text-gray-400 mt-0.5">Trend over time</p>
             </div>
             <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-medium">
-              {(['monthly', 'weekly'] as const).map((p) => (
+              {(['daily', 'weekly', 'monthly'] as const).map((p) => (
                 <button
                   key={p}
                   onClick={() => setTrendPeriod(p)}
