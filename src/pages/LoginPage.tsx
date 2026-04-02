@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { authApi } from '../api/auth';
 import { useAuthStore } from '../store/auth.store';
 import { Input } from '../components/ui/Input';
+import { PasswordInput } from '../components/ui/PasswordInput';
 import { Button } from '../components/ui/Button';
 import { FetchError } from '../lib/fetch';
 
@@ -69,9 +70,8 @@ export function LoginPage() {
               error={errors.email?.message}
               {...register('email')}
             />
-            <Input
+            <PasswordInput
               label="Password"
-              type="password"
               placeholder="••••••••"
               autoComplete="current-password"
               error={errors.password?.message}

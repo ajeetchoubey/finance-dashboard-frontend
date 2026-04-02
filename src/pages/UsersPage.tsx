@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, ChevronLeft, ChevronRight, UserX, UserCheck } from 'lucide-react';
+import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -9,6 +10,7 @@ import { useAuthStore } from '../store/auth.store';
 import { Header } from '../components/layout/Header';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
+import { PasswordInput } from '../components/ui/PasswordInput';
 import { Select } from '../components/ui/Select';
 import { Badge } from '../components/ui/Badge';
 import { Modal } from '../components/ui/Modal';
@@ -68,7 +70,7 @@ function CreateUserForm({
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
       <Input label="Full name" placeholder="Jane Doe" error={errors.name?.message} {...register('name')} />
       <Input label="Email" type="email" placeholder="jane@example.com" error={errors.email?.message} {...register('email')} />
-      <Input label="Password" type="password" placeholder="Min 8 characters" error={errors.password?.message} {...register('password')} />
+      <PasswordInput label="Password" placeholder="Min 8 characters" error={errors.password?.message} {...register('password')} />
       <div className="grid grid-cols-2 gap-3">
         <Select label="Role" error={errors.role?.message} {...register('role')}>
           <option value="viewer">Viewer</option>
@@ -90,11 +92,13 @@ function CreateUserForm({
 
 function EditUserForm({
   user,
+  isSelf,
   onSubmit,
   loading,
   error,
 }: {
   user: User;
+  isSelf: boolean;
   onSubmit: (v: EditFormValues) => void;
   loading: boolean;
   error: string;
@@ -113,15 +117,24 @@ function EditUserForm({
           <option value="analyst">Analyst</option>
           <option value="admin">Admin</option>
         </Select>
-        <Select label="Status" error={errors.status?.message} {...register('status')}>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </Select>
+        <div className="flex flex-col gap-1">
+          <Select
+            label="Status"
+            error={errors.status?.message}
+            disabled={isSelf}
+            {...register('status')}
+          >
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </Select>
+          {isSelf && (
+            <p className="text-xs text-amber-500">You cannot deactivate your own account.</p>
+          )}
+        </div>
       </div>
       <div className="border-t border-gray-100 pt-4">
-        <Input
+        <PasswordInput
           label="New password"
-          type="password"
           placeholder="Leave blank to keep current"
           error={errors.newPassword?.message}
           {...register('newPassword')}
@@ -157,21 +170,45 @@ export function UsersPage() {
 
   const createMutation = useMutation({
     mutationFn: usersApi.create,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); setCreateModal(false); setFormError(''); },
-    onError: (err) => setFormError(err instanceof FetchError ? err.message : 'Failed to create user'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      setCreateModal(false);
+      setFormError('');
+      toast.success('User created successfully');
+    },
+    onError: (err) => {
+      const msg = err instanceof FetchError ? err.message : 'Failed to create user';
+      setFormError(msg);
+      toast.error(msg);
+    },
   });
 
   const editMutation = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: Parameters<typeof usersApi.update>[1] }) =>
       usersApi.update(id, payload),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); setEditUser(null); setFormError(''); },
-    onError: (err) => setFormError(err instanceof FetchError ? err.message : 'Failed to update user'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      setEditUser(null);
+      setFormError('');
+      toast.success('User updated successfully');
+    },
+    onError: (err) => {
+      const msg = err instanceof FetchError ? err.message : 'Failed to update user';
+      setFormError(msg);
+      toast.error(msg);
+    },
   });
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: User['status'] }) =>
       usersApi.updateStatus(id, status),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+    onSuccess: (_, { status }) => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      toast.success(status === 'active' ? 'User activated' : 'User deactivated');
+    },
+    onError: (err) => {
+      toast.error(err instanceof FetchError ? err.message : 'Failed to update user status');
+    },
   });
 
   const handleApply = () => setActive({ ...pending, page: 1 });
@@ -370,6 +407,7 @@ export function UsersPage() {
         {editUser && (
           <EditUserForm
             user={editUser}
+            isSelf={editUser.id === currentUser?.id}
             onSubmit={handleEdit}
             loading={editMutation.isPending}
             error={formError}

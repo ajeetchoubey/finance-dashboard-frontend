@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -92,19 +93,44 @@ export function RecordsPage() {
 
   const createMutation = useMutation({
     mutationFn: recordsApi.create,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['records'] }); setModal({ open: false }); setFormError(''); },
-    onError: (err) => setFormError(err instanceof FetchError ? err.message : 'Failed to save'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['records'] });
+      setModal({ open: false });
+      setFormError('');
+      toast.success('Record created successfully');
+    },
+    onError: (err) => {
+      const msg = err instanceof FetchError ? err.message : 'Failed to create record';
+      setFormError(msg);
+      toast.error(msg);
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: Partial<FormValues> }) => recordsApi.update(id, payload),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['records'] }); setModal({ open: false }); setFormError(''); },
-    onError: (err) => setFormError(err instanceof FetchError ? err.message : 'Failed to update'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['records'] });
+      setModal({ open: false });
+      setFormError('');
+      toast.success('Record updated successfully');
+    },
+    onError: (err) => {
+      const msg = err instanceof FetchError ? err.message : 'Failed to update record';
+      setFormError(msg);
+      toast.error(msg);
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: recordsApi.delete,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['records'] }); setDeleteConfirm(null); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['records'] });
+      setDeleteConfirm(null);
+      toast.success('Record deleted');
+    },
+    onError: (err) => {
+      toast.error(err instanceof FetchError ? err.message : 'Failed to delete record');
+    },
   });
 
   const handleApply = () => setActive({ ...pending, page: 1 });
